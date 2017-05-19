@@ -214,6 +214,7 @@ for (i in c("95_00", "01_06", "07_12", "13_16")){
 topdocsfortopic = list()
 TopicModel = list()
 topwords = list()
+models =  list()
 for (i in c("95_00", "01_06", "07_12", "13_16")){  
     # Do topic modeling on abstracts using the lda libraries (adding them as a new column)
     source(paste(getwd(), "/topicmodel_years.R", sep = ""), chdir = T)
@@ -390,14 +391,13 @@ rm(list=c("c01", "c06", "c13", "c95", "i", "j", "K", "keywordDFList", "keywordPl
 load("TopicModel.RData")
 detach("package:igraph")
 
-ES <- data.frame(cbind(c("oceans", "freshwater", "conservation planning", "pollination", "soils", "forests", "land cover", "agriculture", "sustainable mgnt", "ecological restoration", "urban land cover", "economic instruments", "economic valuation", "role of science"),c("navy", "royalblue", "seagreen", "yellow", "sienna", "olivedrab", "thistle", "peru", "salmon", "limegreen", "azure", "goldenrod", "gold", "darkorchid"), rbind(c(7,8,2,6), c(2,1,8,4), c(6,NA,NA,NA), c(NA,5,6,5), c(1,7,7,1), c(8,6,NA,9), c(NA,2,NA,NA), c(9,NA,4,3), c(4,9,NA,NA), c(3,3,NA,NA), c(NA,NA,1,8), c(5,NA,3,7), c(NA,4,9,NA), c(NA,NA,5,2))))
+ES <- data.frame(cbind(c("marine", "freshwater", "pollination", "soils", "forests", "land cover", "urban land cover", "agriculture", "sustainable mgnt", "role of science",  "conservation", "valuation", "instruments", "natural capital"),c("navy", "royalblue", "yellow", "sienna", "olivedrab", "thistle", "azure", "peru", "salmon", "darkorchid", "limegreen", "goldenrod", "gold", "darkorange"), rbind(c(8,9,5,6), c(7,7,9,5), c(NA,8,3,7), c(5,2,7,8), c(9,6,6,3), c(NA,5,NA,NA),c(NA,NA,4,9), c(6,NA,8,NA), c(1,1,NA,NA),  c(NA,NA,1,1), c(4,3,NA,NA), c(2,4,NA,2), c(NA,NA,2,4), c(3,NA,NA,NA))))
 names(ES) <- c("topic", "color", "period1", "period2", "period3", "period4")
 setwd(paste(file.path(mainDir), "/output/", sep = ""))
 write.csv(ES, "TopicDevelopment.csv")
 ES$colhex <- paste0(col2hex(ES$color), "A8")
 
 ESnodes <- data.frame(id=paste0(rep("N", 36), rep(1:36)),  x=rep(1:4, each=9), 
-                      #y=c(c(9,8,7,6,5,2,3,4,1),c(9,8,7,6,5,2,4,3,1),c(9,8,7,6,5,4,3,2,1),c(9,8,7,6,5,4,3,1,2)), 
                       label=c(as.vector(ES[which(!is.na(ES$period1)),1]), 
                               as.vector(ES[which(!is.na(ES$period2)),1]), 
                               as.vector(ES[which(!is.na(ES$period3)),1]), 
@@ -416,47 +416,50 @@ ESnodes <- data.frame(id=paste0(rep("N", 36), rep(1:36)),  x=rep(1:4, each=9),
 # ESnodes$label[25] <- "REDD/PES"
 
 ESedges <- data.frame(
-  N1=c("N1","N2","N3","N4","N5","N6","N7","N8","N9","N10","N11","N12","N13","N14","N14","N15","N16","N17","N17","N17","N18","N19","N20","N21","N22","N23","N24","N25","N25","N26","N27"), 
-  N2=as.character(ESnodes[c(c(10, 11, 17, 13, 14, 23, 16, 17, 25),c(19, 20, 21, 22, 24, 25, 24, 27, 20, 22, 25, 26), c(28, 29, 30, 31, 33, 34, 32, 35, 35, 36)),1]), 
+  N1=c("N1","N2","N3","N4","N5","N6","N7","N8","N9","N10","N11","N12","N13","N14","N15","N16","N17","N17","N17","N18", "N18","N19","N20","N21","N22","N23","N24","N25","N25","N25","N26","N27","N27"), 
+  N2=as.character(ESnodes[c(c(10, 11, 13, 14, 25, 16, 17, 18, 15),c(19, 20, 21, 22, 23, 24, 26, 21, 27, 26, 27, 24), c(28, 29, 30, 31, 32, 33, 35, 31, 30, 34, 35, 36)),1]), 
   weight=c(
     
   #1st period edges
-  TopicModel[[2]]$topic.proportion[8], #oceans
-  TopicModel[[2]]$topic.proportion[1], #freshwater
-  (TopicModel[[1]]$topic.proportion[6]/(TopicModel[[1]]$topic.proportion[3]+TopicModel[[1]]$topic.proportion[6]))*TopicModel[[2]]$topic.proportion[3], #conservation planning
-  TopicModel[[2]]$topic.proportion[7], #soils
+  TopicModel[[2]]$topic.proportion[8], #marine
+  TopicModel[[2]]$topic.proportion[7], #freshwater
+  TopicModel[[2]]$topic.proportion[2], #soils
   TopicModel[[2]]$topic.proportion[6], #forests
-  TopicModel[[3]]$topic.proportion[4], #agriculture
-  TopicModel[[2]]$topic.proportion[9], #sustainable mgnt
-  (TopicModel[[1]]$topic.proportion[3]/(TopicModel[[1]]$topic.proportion[3]+TopicModel[[1]]$topic.proportion[6]))*TopicModel[[2]]$topic.proportion[3], #ecological restoration
-  (TopicModel[[1]]$topic.proportion[5]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[6]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[3], #economic instruments
+  TopicModel[[3]]$topic.proportion[8], #agriculture
+  TopicModel[[2]]$topic.proportion[1], #sustainable mgnt
+  TopicModel[[2]]$topic.proportion[3], #conservation
+  TopicModel[[2]]$topic.proportion[4], #valuation
+  TopicModel[[2]]$topic.proportion[5], #natural capital
   
   #2nd period edges
-  TopicModel[[3]]$topic.proportion[2], #oceans
-  (TopicModel[[2]]$topic.proportion[1]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[8], #freshwater
-  TopicModel[[3]]$topic.proportion[6], #pollination
-  (TopicModel[[2]]$topic.proportion[7]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[7]))*TopicModel[[3]]$topic.proportion[7], #soils
-  (TopicModel[[2]]$topic.proportion[6]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[6]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[3], #forests->economic instruments
-  (TopicModel[[2]]$topic.proportion[6]/(TopicModel[[2]]$topic.proportion[2]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[1], #forests2->urban land cover
-  (TopicModel[[2]]$topic.proportion[2]/(TopicModel[[2]]$topic.proportion[2]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[1], #land cover
-  TopicModel[[3]]$topic.proportion[5], #sustainable mgnt
-  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[3], #ecological restoration->economic instruments
-  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[7]))*TopicModel[[3]]$topic.proportion[7], #ecological restoration->soils
-  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[8], #ecological restoration->freshwater
-  TopicModel[[3]]$topic.proportion[9], #economic valuation
+  TopicModel[[3]]$topic.proportion[5], #marine
+  TopicModel[[3]]$topic.proportion[9], #freshwater
+  (TopicModel[[2]]$topic.proportion[8]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[8]))*TopicModel[[3]]$topic.proportion[3], #pollination
+  TopicModel[[3]]$topic.proportion[7], #soils
+  TopicModel[[3]]$topic.proportion[6], #forests
+  (TopicModel[[2]]$topic.proportion[5]/(TopicModel[[2]]$topic.proportion[4]+TopicModel[[2]]$topic.proportion[5]))*TopicModel[[3]]$topic.proportion[4], #land cover
+  (TopicModel[[2]]$topic.proportion[1]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[1], #sustainable mgnt -> role of science 
+  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[8]))*TopicModel[[3]]$topic.proportion[3], #conservation -> pollination
+  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[4]))*TopicModel[[3]]$topic.proportion[2], #conservation -> instruments
+  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[1], #conservation -> role of science
+  (TopicModel[[2]]$topic.proportion[4]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[4]))*TopicModel[[3]]$topic.proportion[2], #valuation -> instruments
+  (TopicModel[[2]]$topic.proportion[4]/(TopicModel[[2]]$topic.proportion[4]+TopicModel[[2]]$topic.proportion[5]))*TopicModel[[3]]$topic.proportion[2], # valuation -> urban land cover
   
   #3rd period edges
-  TopicModel[[4]]$topic.proportion[6], #oceans
-  TopicModel[[4]]$topic.proportion[4], #freshwater
-  TopicModel[[4]]$topic.proportion[5], #pollination
-  TopicModel[[4]]$topic.proportion[1], #soils
-  TopicModel[[4]]$topic.proportion[3], #agriculture
-  TopicModel[[4]]$topic.proportion[8], #urban land cover
-  (TopicModel[[3]]$topic.proportion[3]/(TopicModel[[3]]$topic.proportion[3]+TopicModel[[3]]$topic.proportion[9]))*TopicModel[[4]]$topic.proportion[7], #economic instruments->economic caluation
-  TopicModel[[4]]$topic.proportion[9], #economic instruments->forests
-  (TopicModel[[3]]$topic.proportion[9]/(TopicModel[[3]]$topic.proportion[3]+TopicModel[[3]]$topic.proportion[9]))*TopicModel[[4]]$topic.proportion[7], #economic valuation
-  TopicModel[[4]]$topic.proportion[2] #role of science
-  )*10)
+  TopicModel[[4]]$topic.proportion[6], #marine
+  TopicModel[[4]]$topic.proportion[5], #freshwater
+  (TopicModel[[3]]$topic.proportion[3]/(TopicModel[[3]]$topic.proportion[3]+TopicModel[[3]]$topic.proportion[8]))*TopicModel[[4]]$topic.proportion[8], #pollination
+  (TopicModel[[3]]$topic.proportion[7]/(TopicModel[[3]]$topic.proportion[7]+TopicModel[[3]]$topic.proportion[8]))*TopicModel[[4]]$topic.proportion[8], #soils
+  TopicModel[[4]]$topic.proportion[3], #forests
+  TopicModel[[4]]$topic.proportion[9], #urban land cover
+  (TopicModel[[3]]$topic.proportion[8]/(TopicModel[[3]]$topic.proportion[4]+TopicModel[[3]]$topic.proportion[8]))*TopicModel[[4]]$topic.proportion[2], #agriculture->valuation
+  (TopicModel[[3]]$topic.proportion[8]/(TopicModel[[3]]$topic.proportion[7]+TopicModel[[3]]$topic.proportion[8]))*TopicModel[[4]]$topic.proportion[8], #agriculture>soils
+  (TopicModel[[3]]$topic.proportion[8]/(TopicModel[[3]]$topic.proportion[3]+TopicModel[[3]]$topic.proportion[8]))*TopicModel[[4]]$topic.proportion[8], #agriculture>soils
+  TopicModel[[4]]$topic.proportion[1], #role of science
+  (TopicModel[[3]]$topic.proportion[2]/(TopicModel[[3]]$topic.proportion[2]+TopicModel[[3]]$topic.proportion[8]))*TopicModel[[4]]$topic.proportion[2], #instruments -> valuation
+  TopicModel[[4]]$topic.proportion[4] #valuation
+  )*10
+)
 
 ESnodes$id <- as.character(ESnodes$id)
 ESnodes$col <- as.character(ESnodes$col)

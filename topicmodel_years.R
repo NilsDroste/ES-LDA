@@ -9,7 +9,8 @@ library(tm)
 library(SnowballC)
 library(lda)
 library(LDAvis)
-library("XLConnect")
+library(XLConnect)
+library(parallel)
 
 # Import data
 data <- literatureList[[i]]$Abstract
@@ -47,7 +48,7 @@ get.terms <- function(x) {
   rbind(as.integer(index - 1), as.integer(rep(1, length(index))))
 }
 # mclapply is the multicore enabled version of lapply
-documents <- lapply(doc.list, get.terms)
+documents <- mclapply(doc.list, get.terms)
 
 # Compute some statistics related to the data set:
 D <- length(documents)  # number of documents (2,000)
@@ -59,16 +60,17 @@ term.frequency <- as.integer(term.table)  # frequencies of terms in the corpus [
 # MCMC and model tuning parameters
 K <- 9 # number of topics
 G <- 2500 # iterations
-alpha <- 0.166 # 1 / K
-eta <- 0.166 # 1 / K
+alpha <- 1/K
+eta <- 1/K
 
 # Fit the model
 set.seed(357)
 
 fit <- lda.collapsed.gibbs.sampler(documents = documents, K = K, vocab = vocab,
                                    num.iterations = G, alpha = alpha,
-                                   eta = eta, initial = NULL, burnin = 0,
+                                   eta = eta, initial = NULL, burnin = 5,
                                    compute.log.likelihood = TRUE)
+models[[i]] <- fit
 
 # Document topic matrix (transposed to get topic probabilities for each document)
 topicsfordocs <- t(fit$document_sums)
@@ -104,9 +106,10 @@ json <- createJSON(phi = TopicModel[[i]]$phi,
 new.order <- RJSONIO::fromJSON(json)$topic.order
 TopicModel[[i]]$phi <- TopicModel[[i]]$phi[new.order, ]
 TopicModel[[i]]$theta <- TopicModel[[i]]$theta[, new.order]
+TopicModel[[i]]$jsPCA <- jsPCA(TopicModel[[i]]$phi)
 
 # Freeing up memory
-rm(list = c("alpha", "D", "data", "del", "doc.list", "doc.length", "documents", 
+rm(list = c("alpha", "D", "data", "del", "doc.list", "doc.length", "documents",
             "eta", "fit", "G", "N", "phi", "stop_words", "term.frequency", "term.table",
             "theta", "topicsfordocs", "vocab", "W"))
 

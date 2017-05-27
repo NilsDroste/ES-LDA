@@ -82,8 +82,8 @@ tfdDF$toptopic <- colnames(tfdDF)[max.col(tfdDF,ties.method="first")]
 # Summary statistics
 # Most likely documents for each topic
 topdocsfortopic[[i]] <- top.topic.documents(fit$document_sums)
-# Ten most likely words for each topic
-topwords[[i]] <- top.topic.words(fit$topics, 10, by.score = TRUE)
+# Ten most likely words for each topic, ranked by probability mass
+topwords[[i]] <- top.topic.words(fit$topics, 20, by.score = FALSE)
 
 theta <- t(apply(fit$document_sums + alpha, 2, function(x) x/sum(x)))
 phi <- t(apply(t(fit$topics) + eta, 2, function(x) x/sum(x)))
@@ -101,12 +101,15 @@ json <- createJSON(phi = TopicModel[[i]]$phi,
                    doc.length = TopicModel[[i]]$doc.length,
                    vocab = TopicModel[[i]]$vocab,
                    term.frequency = TopicModel[[i]]$term.frequency, 
-                   reorder.topics = FALSE)
+                   reorder.topics = TRUE)
 
 new.order <- RJSONIO::fromJSON(json)$topic.order
 TopicModel[[i]]$phi <- TopicModel[[i]]$phi[new.order, ]
 TopicModel[[i]]$theta <- TopicModel[[i]]$theta[, new.order]
 TopicModel[[i]]$jsPCA <- jsPCA(TopicModel[[i]]$phi)
+
+topdocsfortopic[[i]] <- topdocsfortopic[[i]][,new.order] 
+topwords[[i]] <- topwords[[i]][,new.order]
 
 # Freeing up memory
 rm(list = c("alpha", "D", "data", "del", "doc.list", "doc.length", "documents",

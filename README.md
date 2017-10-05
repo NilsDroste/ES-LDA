@@ -4,10 +4,12 @@ this is the source code for the article
 
 Nils Droste, Dalia D'Amato, Jessica J. Goddard
 
-## Ecosystem service research
-### outlining the emergence and evolution of salient topics through latent Dirichlet allocation
+### Where communities intermingle:
+#### outlining the evolution of topics in ecosystem service research
 
-to be submitted
+***in preparation for submission to Ecosystem Services"
+
+See the interactive LDAvis visualization [here](http://nils.droste.io/2017/10/05/ES_LDA/)
 
 The code is an adaptation of the NAILS Project:
 

@@ -7,7 +7,7 @@ Nils Droste, Dalia D'Amato, Jessica J. Goddard
 ### Where communities intermingle:
 #### outlining the evolution of topics in ecosystem service research
 
-***in preparation for submission to Ecosystem Services"
+***in preparation for submission to Ecosystem Services*** 
 
 See the interactive LDAvis visualization [here](http://nils.droste.io/2017/10/05/ES_LDA/)
 

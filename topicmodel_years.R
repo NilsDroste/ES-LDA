@@ -9,7 +9,6 @@ library(tm)
 library(SnowballC)
 library(lda)
 library(LDAvis)
-library(XLConnect)
 library(parallel)
 
 # Import data
@@ -59,7 +58,7 @@ term.frequency <- as.integer(term.table)  # frequencies of terms in the corpus [
 
 # MCMC and model tuning parameters
 K <- 9 # number of topics
-G <- 2500 # iterations
+G <- 10000 # iterations
 alpha <- 1/K
 eta <- 1/K
 
@@ -67,8 +66,8 @@ eta <- 1/K
 set.seed(357)
 
 fit <- lda.collapsed.gibbs.sampler(documents = documents, K = K, vocab = vocab,
-                                   num.iterations = G, alpha = alpha,
-                                   eta = eta, initial = NULL, burnin = 5,
+                                   num.iterations = G, alpha = alpha, 
+                                   eta = eta, initial = NULL, burnin = 1000,
                                    compute.log.likelihood = TRUE)
 models[[i]] <- fit
 
@@ -77,12 +76,13 @@ topicsfordocs <- t(fit$document_sums)
 # Convert to data frame
 tfdDF <- data.frame(topicsfordocs)
 # Add top topics document
+colnames(tfdDF) <- as.character(1:K)
 tfdDF$toptopic <- colnames(tfdDF)[max.col(tfdDF,ties.method="first")]
 
 # Summary statistics
 # Most likely documents for each topic
 topdocsfortopic[[i]] <- top.topic.documents(fit$document_sums)
-# Ten most likely words for each topic, ranked by probability mass
+# Twenty most likely words for each topic, ranked by probability mass
 topwords[[i]] <- top.topic.words(fit$topics, 20, by.score = FALSE)
 
 theta <- t(apply(fit$document_sums + alpha, 2, function(x) x/sum(x)))
@@ -92,7 +92,8 @@ TopicModel[[i]]    <- list(phi = phi,
                       theta = theta,
                       doc.length = doc.length,
                       vocab = vocab,
-                      term.frequency = term.frequency)
+                      term.frequency = term.frequency,
+                      tfdDF$toptopic )
 
 
 # create the JSON object to feed the visualization

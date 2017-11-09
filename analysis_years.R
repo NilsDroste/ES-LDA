@@ -28,6 +28,7 @@ library(rworldmap)
 library(stringi)
 library(sankey)
 library(gplots)
+library(XLConnect)
 
 # Session Info
 sessionInfo()
@@ -207,10 +208,11 @@ for (i in c("1970_2000", "2001_2010", "2011_2016")){
 
 # 2 Topic modelling ---------------------------------------------------------------------------------
 # reading in saved data
-# literatureList = list()
-# for (i in c("1970_2000", "2001_2010", "2011_2016")){
-#   literatureList[[i]] <- read.csv( paste(getwd(), "/output/", i, "/literature_", i, ".csv", sep=""), sep = ";")
-#   }
+setwd(file.path(mainDir))
+literatureList = list()
+for (i in c("1970_2000", "2001_2010", "2011_2016")){
+  literatureList[[i]] <- read.csv( paste(getwd(), "/output/", i, "/literature_", i, ".csv", sep=""), sep = ";")
+  }
 topdocsfortopic = list()
 TopicModel = list()
 topwords = list()
@@ -222,10 +224,6 @@ for (i in c("1970_2000", "2001_2010", "2011_2016")){
     # Add top topic to main document
     literatureList[[i]]$TopicModelTopic <- tfdDF$toptopic
     
-    # Save the topic model topic descriptions
-    write.table(topwords[[i]], paste(getwd(), "/output/", i, "/topicmodeltopics_", i , ".csv", sep=""),
-                sep = ";", row.names = F, col.names = c("Topic 1","Topic 2","Topic 3","Topic 4","Topic 5","Topic 6","Topic 7","Topic 8","Topic 9"), qmethod = "double")
-    
     outDir = paste(getwd(), "/output/", i, "/topicmodelvis_", i , sep = "")
     
     # HTML output
@@ -233,39 +231,12 @@ for (i in c("1970_2000", "2001_2010", "2011_2016")){
     
     # Freeing up memory
     rm(list = c("json", "outDir", "tfdDF", "new.order"))
-  }
-
-# create a worksheet with the top docs for topics for each period
-for (i in c("1970_2000", "2001_2010", "2011_2016")){  
-  for (j in 1:3){
-    setwd(paste(file.path(mainDir), "/output/", names(topdocsfortopic[j]), "/", sep = ""))
-    wb <- loadWorkbook(paste("topdocsfortopics_", names(topdocsfortopic[j]), ".xls", sep = ""), create = TRUE)
-    for (i in (1:K)){
-      createSheet(wb, paste("topic_", i, sep =""))
-      writeWorksheet(wb, as.data.frame(literatureList[j])[as.data.frame(topdocsfortopic[j])[,i], ][,c(3,46,10,11,53,54,56,23)], paste("topic_", i, sep =""))
-    }
-    saveWorkbook(wb)
-    setwd(file.path(mainDir))
-    }
-  }
+}
 
 for (i in c("1970_2000", "2001_2010", "2011_2016")){ 
   TopicModel[[i]]$topic.frequency <- colSums(TopicModel[[i]]$theta * TopicModel[[i]]$doc.length)
   TopicModel[[i]]$topic.proportion <- TopicModel[[i]]$topic.frequency/sum(TopicModel[[i]]$topic.frequency) 
-  
-  #save topic proportions in csv files
-  write.table(as.data.frame(cbind(c("Topic 1","Topic 2","Topic 3","Topic 4","Topic 5","Topic 6","Topic 7","Topic 8","Topic 9"),round(TopicModel[[i]]$topic.proportion*100,2))), paste(getwd(), "/output/", i, "/topicproportions_", i , ".csv", sep=""), sep = ";", row.names = F, col.names = F, qmethod = "double")
-  
-  #save topic centre coordinates in csv files
-  write.table(TopicModel[[i]]$jsPCA, paste(getwd(), "/output/", i, "/topiccentrecoords_", i , ".csv", sep=""), sep = ";", row.names = c("Topic 1","Topic 2","Topic 3","Topic 4","Topic 5","Topic 6","Topic 7","Topic 8","Topic 9"), col.names = NA, qmethod = "double")
-
-  #save topic distances in csv files
-  write.table(as.matrix(dist(TopicModel[[i]]$jsPCA)), paste(getwd(), "/output/", i, "/topicdistances_", i , ".csv", sep=""), sep = ";", col.names = NA, qmethod = "double")
 }
-
-save(TopicModel, file="TopicModel.RData")
-
-
 
 # 3 plotting -----------------------------------------------------------------------
 
@@ -384,7 +355,7 @@ dev.print(file= "locationsPlot.png", device=png, width=1000, height= 2000, res=3
 dev.off()
 setwd(file.path(mainDir))
 
-rm(list=c("c1970_2000", "c2001_2010", "c2011_2016", "i", "j", "K", "keywordDFList", "keywordPlot","keywordPlot1", "keywordPlot2", "keywordPlot3", "keywordPlot4", "keywordPlotList", "literature", "location_1970_2000", "location_2001_2010", "location_2011_2016", "location_13_16", "locList", "x1", "x2", "x3", "x4", "wb", "op"))
+rm(list=c("c1970_2000", "c2001_2010", "c2011_2016", "i", "j", "keywordDFList", "keywordPlot","keywordPlot1", "keywordPlot2", "keywordPlot3", "keywordPlot4", "keywordPlotList", "literature", "location_1970_2000", "location_2001_2010", "location_2011_2016", "location_13_16", "locList", "Map1970", "Map2001", "Map2010", "x1", "x2", "x3", "x4", "wb", "op"))
 
 
 # sankey diagramm
@@ -392,22 +363,28 @@ rm(list=c("c1970_2000", "c2001_2010", "c2011_2016", "i", "j", "K", "keywordDFLis
 load("TopicModel.RData")
 detach("package:igraph")
 
-ES <- data.frame(cbind(c("marine", "freshwater", "ecosystem fcts.", "pollination", "soils", "forests", "land cover", "urban", "agriculture", "risk mgnt", "sust. mgnt", "role of science", "governance", "conservation", "valuation", "assessment", "global awaren."),c("navy", "royalblue", "darkolivegreen", "yellow", "sienna", "olivedrab4", "thistle", "lavender", "peru", "lightpink", "salmon", "palevioletred", "purple", "limegreen", "goldenrod", "firebrick", "mistyrose"), rbind(c(6,2,4), c(9,9,8), c(4,NA,NA), c(NA,5,6), c(NA,8,5), c(8,7,7), c(NA,4,3), c(NA,NA,9), c(NA,3,NA), c(1,NA,NA), c(2,NA,NA),  c(NA,1,NA), c(NA,NA,1), c(7,NA,NA), c(3,6,NA), c(NA,NA,2), c(5,NA,NA))))
-names(ES) <- c("topic", "color", "period1", "period2", "period3")
+# ES <- data.frame(cbind(c("marine", "freshwater", "ecosystem fcts.", "pollination", "soils", "forests", "land cover", "urban", "agriculture", "risk mgnt", "sust. mgnt", "role of science", "governance", "conservation", "valuation", "assessment", "global awaren."),c("navy", "royalblue", "darkolivegreen", "yellow", "sienna", "olivedrab4", "thistle", "lavender", "peru", "lightpink", "salmon", "palevioletred", "purple", "limegreen", "goldenrod", "firebrick", "mistyrose"), rbind(c(6,2,4), c(9,9,8), c(4,NA,NA), c(NA,5,6), c(NA,8,5), c(8,7,7), c(NA,4,3), c(NA,NA,9), c(NA,3,NA), c(1,NA,NA), c(2,NA,NA),  c(NA,1,NA), c(NA,NA,1), c(7,NA,NA), c(3,6,NA), c(NA,NA,2), c(5,NA,NA))))
+# names(ES) <- c("Topic", "Color", "Period1", "Period2", "Period3")
+# setwd(paste(file.path(mainDir), "/output/", sep = ""))
+# write.csv(ES, "TopicDevelopment.csv")
+# ES$colhex <- paste0(col2hex(ES$Color), "A8")
+
+ES <- data.frame(cbind(c("marine", "freshwater", "ecosystem fcts.", "pollination", "soils", "forests", "land cover", "urban", "agriculture", "risk mgnt", "sust. mgnt", "role of science", "governance", "conservation", "valuation", "assessment", "global awaren."),c("navy", "royalblue", "darkolivegreen", "yellow", "sienna", "olivedrab4", "thistle", "lavender", "peru", "lightpink", "salmon", "palevioletred", "purple", "limegreen", "goldenrod", "firebrick", "mistyrose"), rbind(c(5,2,4), c(9,9,7), c(6,NA,NA), c(NA,4,6), c(NA,8,5), c(8,7,8), c(NA,5,3), c(NA,NA,9), c(NA,3,NA), c(1,NA,NA), c(2,NA,NA),  c(NA,1,NA), c(NA,NA,1), c(7,NA,NA), c(3,6,NA), c(NA,NA,2), c(4,NA,NA))))
+names(ES) <- c("Topic", "Color", "Period1", "Period2", "Period3")
 setwd(paste(file.path(mainDir), "/output/", sep = ""))
 write.csv(ES, "TopicDevelopment.csv")
-ES$colhex <- paste0(col2hex(ES$color), "A8")
+ES$colhex <- paste0(col2hex(ES$Color), "A8")
 
 ESnodes <- data.frame(id=paste0(rep("N", 27), rep(1:27)),  x=rep(1:3, each=9), 
-                      label=c(as.vector(ES[which(!is.na(ES$period1)),1]), 
-                              as.vector(ES[which(!is.na(ES$period2)),1]), 
-                              as.vector(ES[which(!is.na(ES$period3)),1])), 
-                      col=c(as.vector(ES[which(!is.na(ES$period1)),6]), 
-                            as.vector(ES[which(!is.na(ES$period2)),6]), 
-                            as.vector(ES[which(!is.na(ES$period3)),6])), 
-                      size=c(TopicModel[[1]]$topic.proportion[ES$period1[which(!is.na(ES$period1))]]*10, 
-                             TopicModel[[2]]$topic.proportion[ES$period2[which(!is.na(ES$period2))]]*10, 
-                             TopicModel[[3]]$topic.proportion[ES$period3[which(!is.na(ES$period3))]]*10), cex=rep(.8, 27))
+                      label=c(as.vector(ES[which(!is.na(ES$Period1)),1]), 
+                              as.vector(ES[which(!is.na(ES$Period2)),1]), 
+                              as.vector(ES[which(!is.na(ES$Period3)),1])), 
+                      col=c(as.vector(ES[which(!is.na(ES$Period1)),6]), 
+                            as.vector(ES[which(!is.na(ES$Period2)),6]), 
+                            as.vector(ES[which(!is.na(ES$Period3)),6])), 
+                      size=c(TopicModel[[1]]$topic.proportion[ES$Period1[which(!is.na(ES$Period1))]]*10, 
+                             TopicModel[[2]]$topic.proportion[ES$Period2[which(!is.na(ES$Period2))]]*10, 
+                             TopicModel[[3]]$topic.proportion[ES$Period3[which(!is.na(ES$Period3))]]*10), cex=rep(.8, 27))
 
 
 ESedges <- data.frame(
@@ -418,37 +395,37 @@ ESedges <- data.frame(
   weight=c(
     
   #1st period edges
-  (TopicModel[[1]]$topic.proportion[6]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[6]))*TopicModel[[2]]$topic.proportion[2], #marine
-  (TopicModel[[1]]$topic.proportion[9]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[9]))*TopicModel[[2]]$topic.proportion[9], #freshwater -> freshwater
-  TopicModel[[2]]$topic.proportion[5], #community ecol. -> pollination
+  (TopicModel[[1]]$topic.proportion[5]/(TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[5]))*TopicModel[[2]]$topic.proportion[2], #marine
+  (TopicModel[[1]]$topic.proportion[9]/(TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[9]))*TopicModel[[2]]$topic.proportion[9], #freshwater -> freshwater
+  TopicModel[[2]]$topic.proportion[4], #community ecol. -> pollination
   TopicModel[[2]]$topic.proportion[8], #community ecol. -> soils
   TopicModel[[2]]$topic.proportion[7], #forests
-  (TopicModel[[1]]$topic.proportion[1]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #risk mgnt -> role of science
-  (TopicModel[[1]]$topic.proportion[2]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #sust. mgnt -> role of science
+  (TopicModel[[1]]$topic.proportion[1]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #risk mgnt -> role of science
+  (TopicModel[[1]]$topic.proportion[2]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #sust. mgnt -> role of science
   TopicModel[[2]]$topic.proportion[3], #conserv -> agriculture
-  (TopicModel[[1]]$topic.proportion[7]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #conservation -> role of science
-  (TopicModel[[1]]$topic.proportion[3]/(TopicModel[[1]]$topic.proportion[3]+TopicModel[[1]]$topic.proportion[5]))*TopicModel[[2]]$topic.proportion[6], #valuation -> valuation
+  (TopicModel[[1]]$topic.proportion[7]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #conservation -> role of science
+  (TopicModel[[1]]$topic.proportion[3]/(TopicModel[[1]]$topic.proportion[3]+TopicModel[[1]]$topic.proportion[4]))*TopicModel[[2]]$topic.proportion[6], #valuation -> valuation
   (TopicModel[[1]]$topic.proportion[5]/(TopicModel[[1]]$topic.proportion[3]+TopicModel[[1]]$topic.proportion[5]))*TopicModel[[2]]$topic.proportion[6], #global awaren. -> valuation
-  (TopicModel[[1]]$topic.proportion[5]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #global awaren. -> role of science
-  (TopicModel[[1]]$topic.proportion[5]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[9]))*TopicModel[[2]]$topic.proportion[9], #global awaren. -> freshwater
-  (TopicModel[[1]]$topic.proportion[5]/(TopicModel[[1]]$topic.proportion[5]+TopicModel[[1]]$topic.proportion[6]))*TopicModel[[2]]$topic.proportion[2], #global awaren. -> marine
+  (TopicModel[[1]]$topic.proportion[4]/(TopicModel[[1]]$topic.proportion[1]+TopicModel[[1]]$topic.proportion[2]+TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[7]))*TopicModel[[2]]$topic.proportion[1], #global awaren. -> role of science
+  (TopicModel[[1]]$topic.proportion[4]/(TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[9]))*TopicModel[[2]]$topic.proportion[9], #global awaren. -> freshwater
+  (TopicModel[[1]]$topic.proportion[4]/(TopicModel[[1]]$topic.proportion[4]+TopicModel[[1]]$topic.proportion[6]))*TopicModel[[2]]$topic.proportion[2], #global awaren. -> marine
   
   #2nd period edges
   TopicModel[[3]]$topic.proportion[4], #marine
-  TopicModel[[3]]$topic.proportion[8], #freshwater
-  (TopicModel[[2]]$topic.proportion[5]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[5]))*TopicModel[[3]]$topic.proportion[6], #pollination
+  TopicModel[[3]]$topic.proportion[7], #freshwater
+  (TopicModel[[2]]$topic.proportion[4]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[4]))*TopicModel[[3]]$topic.proportion[6], #pollination
   (TopicModel[[2]]$topic.proportion[8]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[8]))*TopicModel[[3]]$topic.proportion[5], #soils -> soils
-  TopicModel[[3]]$topic.proportion[7], #forests
-  (TopicModel[[2]]$topic.proportion[7]/(TopicModel[[2]]$topic.proportion[7]+TopicModel[[2]]$topic.proportion[4]))*TopicModel[[3]]$topic.proportion[9], #forests -> urban
-  (TopicModel[[2]]$topic.proportion[4]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[4]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[2], #land cover -> assess
+  TopicModel[[3]]$topic.proportion[8], #forests
+  (TopicModel[[2]]$topic.proportion[7]/(TopicModel[[2]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[7]))*TopicModel[[3]]$topic.proportion[9], #forests -> urban
+  (TopicModel[[2]]$topic.proportion[5]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[2], #land cover -> assess
   TopicModel[[3]]$topic.proportion[3], #land cover -> land cover
-  (TopicModel[[2]]$topic.proportion[4]/(TopicModel[[2]]$topic.proportion[7]+TopicModel[[2]]$topic.proportion[4]))*TopicModel[[3]]$topic.proportion[9], #land cover -> urban
+  (TopicModel[[2]]$topic.proportion[5]/(TopicModel[[2]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[7]))*TopicModel[[3]]$topic.proportion[9], #land cover -> urban
   (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[1], #agriculture -> governance
   (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[8]))*TopicModel[[3]]$topic.proportion[5], #agriculture -> soils
-  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[5]))*TopicModel[[3]]$topic.proportion[6], #agriculture -> pollination
-  (TopicModel[[2]]$topic.proportion[1]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[4]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[2], #role of science -> assess
+  (TopicModel[[2]]$topic.proportion[3]/(TopicModel[[2]]$topic.proportion[3]+TopicModel[[2]]$topic.proportion[4]))*TopicModel[[3]]$topic.proportion[6], #agriculture -> pollination
+  (TopicModel[[2]]$topic.proportion[1]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[2], #role of science -> assess
   (TopicModel[[2]]$topic.proportion[1]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[3]))*TopicModel[[3]]$topic.proportion[1], # role of science -> governance
-  (TopicModel[[2]]$topic.proportion[6]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[4]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[2] #valuation -> assess
+  (TopicModel[[2]]$topic.proportion[6]/(TopicModel[[2]]$topic.proportion[1]+TopicModel[[2]]$topic.proportion[5]+TopicModel[[2]]$topic.proportion[6]))*TopicModel[[3]]$topic.proportion[2] #valuation -> assess
   )*10
 )
 
@@ -472,6 +449,131 @@ close.screen(all = TRUE)
 dev.off()
 setwd(file.path(mainDir))
 
+# 4 output -------
 
+# Save the topic model topic descriptions via topwords
+for (i in c("1970_2000", "2001_2010", "2011_2016")){
+  if (i == "1970_2000") {
+    write.table(topwords[[i]], paste(getwd(), "/output/", i, "/topicmodeltopics_", i , ".csv", sep=""),
+            sep = ";", row.names = F, col.names = paste("topic: ", as.character(arrange(na.omit(ES[c(1,3)]), Period1)[,1])), qmethod = "double")
+  }
+  if (i == "2001_2010") {
+    write.table(topwords[[i]], paste(getwd(), "/output/", i, "/topicmodeltopics_", i , ".csv", sep=""),
+                sep = ";", row.names = F, col.names = paste("topic: ", as.character(arrange(na.omit(ES[c(1,4)]), Period2)[,1])), qmethod = "double")
+  }
+  if (i == "2011_2016") {
+    write.table(topwords[[i]], paste(getwd(), "/output/", i, "/topicmodeltopics_", i , ".csv", sep=""),
+                sep = ";", row.names = F, col.names = paste("topic: ", as.character(arrange(na.omit(ES[c(1,5)]), Period3)[,1])), qmethod = "double")
+  }
+}
+
+rm("topwords")
+
+# create a worksheet with the topics per document for each period
+setwd(paste(file.path(mainDir), "/output/", sep = ""))
+wb <- loadWorkbook(paste("DocumentTopics", ".xls", sep = ""), create = TRUE)
+
+for (i in c("1970_2000", "2001_2010", "2011_2016")){
+  createSheet(wb, i)
+  if (i == "1970_2000") {writeWorksheet(wb, left_join(literatureList[[i]][,c(3,10,11,46:48,53:54,65)], ES[c("Topic","Period1")], by=c("TopicModelTopic"="Period1"))[,-9], i)}
+  if (i == "2001_2010") {writeWorksheet(wb, left_join(literatureList[[i]][,c(3,10,11,46:48,53:54,65)], ES[c("Topic","Period2")], by=c("TopicModelTopic"="Period2"))[,-9], i)}
+  if (i == "2011_2016") {writeWorksheet(wb, left_join(literatureList[[i]][,c(3,10,11,46:48,53:54,65)], ES[c("Topic","Period3")], by=c("TopicModelTopic"="Period3"))[,-9], i)}
+      }
+saveWorkbook(wb)
+setwd(file.path(mainDir))
+
+# create a worksheet with the top docs for topics for each period
+for (i in c("1970_2000", "2001_2010", "2011_2016")){  
+  for (j in 1:3){
+    setwd(paste(file.path(mainDir), "/output/", names(topdocsfortopic[j]), "/", sep = ""))
+    wb <- loadWorkbook(paste("topdocsfortopics_", names(topdocsfortopic[j]), ".xls", sep = ""), create = TRUE)
+    if (i == "1970_2000" & j==1) {
+      for (k in (1:K)){
+        createSheet(wb, as.character(arrange(na.omit(ES[c(1,3)]), Period1)[k,1]))
+        writeWorksheet(wb, as.data.frame(literatureList[j])[as.data.frame(topdocsfortopic[j])[,k], ][,c(3,46,10,11,53,54,56,23)], as.character(arrange(na.omit(ES[c(1,3)]), Period1)[k,1]))
+      }
+    }
+    if (i == "2001_2010" & j==2) {
+      for (k in (1:K)){
+        createSheet(wb, as.character(arrange(na.omit(ES[c(1,4)]), Period2)[k,1]))
+        writeWorksheet(wb, as.data.frame(literatureList[j])[as.data.frame(topdocsfortopic[j])[,k], ][,c(3,46,10,11,53,54,56,23)], as.character(arrange(na.omit(ES[c(1,4)]), Period2)[k,1]))
+      }
+    }
+    if (i == "2011_2016"& j==3) {
+      for (k in (1:K)){
+        createSheet(wb, as.character(arrange(na.omit(ES[c(1,5)]), Period3)[k,1]))
+        writeWorksheet(wb, as.data.frame(literatureList[j])[as.data.frame(topdocsfortopic[j])[,k], ][,c(3,46,10,11,53,54,56,23)], as.character(arrange(na.omit(ES[c(1,5)]), Period3)[k,1]))
+      }
+    }
+    saveWorkbook(wb)
+    setwd(file.path(mainDir))
+  }
+}
+
+rm("topdocsfortopic")
+
+#further output
+for (i in c("1970_2000", "2001_2010", "2011_2016")){ 
+  if (i == "1970_2000") {
+    #save topic proportions in csv files
+    write.table(as.data.frame(cbind(cbind(paste("topic: ", as.character(arrange(na.omit(ES[c(1,3)]), Period1)[,1]))),round(TopicModel[[i]]$topic.proportion*100,2))), paste(getwd(), "/output/", i, "/topicproportions_", i , ".csv", sep=""), sep = ";", row.names = F, col.names = F, qmethod = "double")
+    
+    #save topic centre coordinates in csv files
+    write.table(TopicModel[[i]]$jsPCA, paste(getwd(), "/output/", i, "/topiccentrecoords_", i , ".csv", sep=""), sep = ";", row.names = paste("topic: ", as.character(arrange(na.omit(ES[c(1,3)]), Period1)[,1])), col.names = NA, qmethod = "double")
+    
+    #save topic distances in csv files
+    dist <- (as.data.frame(as.data.frame(as.matrix(dist(TopicModel[[i]]$jsPCA))), row.names=paste("topic: ", as.character(arrange(na.omit(ES[c(1,3)]), Period1)[,1]))))
+    names(dist) <- paste("topic: ", as.character(arrange(na.omit(ES[c(1,3)]), Period1)[,1]))
+    write.table(dist, paste(getwd(), "/output/", i, "/topicdistances_", i , ".csv", sep=""), sep = ";", col.names = NA, qmethod = "double")
+  }
+    
+  if (i == "2001_2010") {
+    #save topic proportions in csv files
+  write.table(as.data.frame(cbind(cbind(paste("topic: ", as.character(arrange(na.omit(ES[c(1,4)]), Period2)[,1]))),round(TopicModel[[i]]$topic.proportion*100,2))), paste(getwd(), "/output/", i, "/topicproportions_", i , ".csv", sep=""), sep = ";", row.names = F, col.names = F, qmethod = "double")
+  
+  #save topic centre coordinates in csv files
+  write.table(TopicModel[[i]]$jsPCA, paste(getwd(), "/output/", i, "/topiccentrecoords_", i , ".csv", sep=""), sep = ";", row.names = paste("topic: ", as.character(arrange(na.omit(ES[c(1,4)]), Period2)[,1])), col.names = NA, qmethod = "double")
+  
+  #save topic distances in csv files
+  dist <- (as.data.frame(as.data.frame(as.matrix(dist(TopicModel[[i]]$jsPCA))), row.names=paste("topic: ", as.character(arrange(na.omit(ES[c(1,4)]), Period2)[,1]))))
+  names(dist) <- paste("topic: ", as.character(arrange(na.omit(ES[c(1,4)]), Period2)[,1]))
+  write.table(dist, paste(getwd(), "/output/", i, "/topicdistances_", i , ".csv", sep=""), sep = ";", col.names = NA, qmethod = "double")
+  }
+  
+  if (i == "2011_2016") {
+    #save topic proportions in csv files
+    write.table(as.data.frame(cbind(cbind(paste("topic: ", as.character(arrange(na.omit(ES[c(1,5)]), Period3)[,1]))),round(TopicModel[[i]]$topic.proportion*100,2))), paste(getwd(), "/output/", i, "/topicproportions_", i , ".csv", sep=""), sep = ";", row.names = F, col.names = F, qmethod = "double")
+    
+    #save topic centre coordinates in csv files
+    write.table(TopicModel[[i]]$jsPCA, paste(getwd(), "/output/", i, "/topiccentrecoords_", i , ".csv", sep=""), sep = ";", row.names = paste("topic: ", as.character(arrange(na.omit(ES[c(1,5)]), Period3)[,1])), col.names = NA, qmethod = "double")
+    
+    #save topic distances in csv files
+    dist <- (as.data.frame(as.data.frame(as.matrix(dist(TopicModel[[i]]$jsPCA))), row.names=paste("topic: ", as.character(arrange(na.omit(ES[c(1,5)]), Period3)[,1]))))
+    names(dist) <- paste("topic: ", as.character(arrange(na.omit(ES[c(1,5)]), Period3)[,1]))
+    write.table(dist, paste(getwd(), "/output/", i, "/topicdistances_", i , ".csv", sep=""), sep = ";", col.names = NA, qmethod = "double")
+  }
+}
+
+rm("dist")
+
+# edit the html files of the ldavis output by adding:
+# <footer>
+#   <text>
+#     <font size="3">
+#       <b>Topic names:</b>
+#       as.character(arrange(na.omit(ES[c(1,3)]), Period1)[,1])
+#       as.character(arrange(na.omit(ES[c(1,4)]), Period2)[,1])
+#       as.character(arrange(na.omit(ES[c(1,5)]), Period3)[,1])
+#     </font>
+#   </text>
+
+# edit the ldavis.js files of the ldavis output by adding:
+# //create new svg ...
+#   .attrb(... -80)
+
+
+rm(list=c("i","j","K"))
+
+save(TopicModel, file="TopicModel.RData")
 
 #done

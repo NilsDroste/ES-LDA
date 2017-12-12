@@ -4,12 +4,9 @@ this is the source code for the article
 
 Nils Droste, Dalia D'Amato, Jessica J. Goddard
 
-### Where communities intermingle:
-#### outlining the evolution of topics in ecosystem service research
+## The evolution of topics in ecosystem service research
 
-***in preparation for submission to Ecosystem Services*** 
-
-See the interactive LDAvis visualization [here](http://nils.droste.io/2017/10/05/ES_LDA/)
+is to be submitted
 
 The code is an adaptation of the NAILS Project:
 

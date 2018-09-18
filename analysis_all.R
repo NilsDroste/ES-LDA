@@ -1,9 +1,9 @@
 ########################################################################################
 # Bibliometric Analysis of Circular Economy (CE), Green Economy (GE), Bioeconomy (BE)
 # discourses for a systematic comparison between the content of research on these topics
-# Script authors: N. Droste (nils.droste@ufz.de), D. D'Amato (dalia.damato@helsinki.fi), 
+# Script authors: N. Droste (nils.droste@ufz.de), D. D'Amato (dalia.damato@helsinki.fi),
 # Jess Joan ()
-# an adaptation of the nails project source code: http://nailsproject.net/ 
+# an adaptation of the nails project source code: http://nailsproject.net/
 ########################################################################################
 
 # -1 setting wd, loading packages, preps -----------------------------------------------
@@ -70,27 +70,27 @@ filelist[[i]] <- list.files(paste(getwd(), "/input/all/", sep=""), full.names = 
       # Merge data
       literatureList[[i]] <- rbind(literatureList[[i]], literature)
     }
-  
+
   # Create and add id variable
   id <- c(1:nrow(literatureList[[i]]))
   literatureList[[i]] = cbind(as.data.frame(id), literatureList[[i]])
-  
+
   # Cleaning data
-  
+
   # Fix variable names
   tags <- names(literatureList[[i]])       # Extract column names
   # Match column names (acronyms) with full column names
   fields <- as.character(fieldtags$field[match(tags, fieldtags$tag)])
   fields[is.na(fields)] <- tags[is.na(fields)]     # Throws warnings but seems to be working
   fields <- gsub(" ", "", fields)         # Remove spaces
-  
+
   # Change literature column names and fix weird names
   names(literatureList[[i]]) <- fields
   names(literatureList[[i]])[names(literatureList[[i]]) == "KeywordsPlus\xfc\xbe\x8e\x86\x84\xbc"] <- "KeywordsPlus"
   names(literatureList[[i]])[names(literatureList[[i]]) == "PublicationType(conference,book,journal,bookinseries,orpatent)"] <- "PublicationType"
   names(literatureList[[i]])[names(literatureList[[i]]) == "29-CharacterSourceAbbreviation"] <- "SourceAbbreviation"
   names(literatureList[[i]])[names(literatureList[[i]]) == "DigitalObjectIdentifier(DOI)" ] <- "DOI"
-  
+
   #Format Data
   literatureList[[i]]$AuthorFullName <- toupper(literatureList[[i]]$AuthorFullName)
   literatureList[[i]]$AuthorFullName <- gsub("'", "", literatureList[[i]]$AuthorFullName)
@@ -99,29 +99,29 @@ filelist[[i]] <- list.files(paste(getwd(), "/input/all/", sep=""), full.names = 
   literatureList[[i]]$AuthorKeywords <- tolower(literatureList[[i]]$AuthorKeywords)
   literatureList[[i]]$AuthorKeywords <- gsub("'", "", literatureList[[i]]$AuthorKeywords)
   literatureList[[i]]$AuthorKeywords <- gsub('"', "", literatureList[[i]]$AuthorKeywords)
-  
+
   literatureList[[i]]$KeywordsPlus <- tolower(literatureList[[i]]$KeywordsPlus)
   literatureList[[i]]$KeywordsPlus <- gsub("'", "", literatureList[[i]]$KeywordsPlus)
   literatureList[[i]]$KeywordsPlus <- gsub('"', "", literatureList[[i]]$KeywordsPlus)
-  
+
   literatureList[[i]]$YearPublished <- as.numeric(as.character(literatureList[[i]]$YearPublished))
-  
+
   literatureList[[i]]$DocumentTitle <- gsub("'", "", literatureList[[i]]$DocumentTitle)
   literatureList[[i]]$DocumentTitle <- gsub('"', "", literatureList[[i]]$DocumentTitle)
-  
+
   literatureList[[i]]$SubjectCategory <- tolower(literatureList[[i]]$SubjectCategory)
   literatureList[[i]]$SubjectCategory <- gsub("'", "", literatureList[[i]]$SubjectCategory)
   literatureList[[i]]$SubjectCategory <- gsub('"', "", literatureList[[i]]$SubjectCategory)
-  
+
   literatureList[[i]]$CitedReferences <- gsub("'", "", literatureList[[i]]$CitedReferences)
   literatureList[[i]]$CitedReferences <- gsub('"', "", literatureList[[i]]$CitedReferences)
   literatureList[[i]]$CitedReferences <- toupper(literatureList[[i]]$CitedReferences)
   literatureList[[i]]$CitedReferences <- gsub("DOI DOI", "DOI", literatureList[[i]]$CitedReferences)
-  
+
   literatureList[[i]]$TimesCited <- as.numeric(as.character(literatureList[[i]]$TimesCited))
-  
+
   literatureList[[i]]$DOI <- toupper(literatureList[[i]]$DOI)
-  
+
 }
 
 rm(list = c("data.names", "fields", "fieldtags", "file", "filelist", "i", "id", "literature", "tags"))
@@ -136,20 +136,20 @@ for (i in c("ES")){
 
   # Extract cities and countries
   literatureList[[i]]$Locations <- sapply(literatureList[[i]]$AuthorAddress, get_location)
-  
+
   # Split locations by ";
   locationList <- unlist(lapply(literatureList[[i]]$Locations,
                                 function(x) strsplit(x, ";")))
-  
+
   locations <- data.frame(location = locationList)        # Create data frame
   locations$location <- as.character(locations$location)  # To chararcter type
   locations$city <- gsub(",.*", "", locations$location)   # Remove country from location
   locations$country <- gsub(".*,", "", locations$location) # Remove city from location
-  
+
   # Save locations
   write.table(locations, paste(getwd(), "/output/all/locations_", i, ".csv", sep=""),
               sep = ";", row.names = F, qmethod = "double")
-  
+
   #remove temp data
   rm(list = c("locations", "locationList"))
 }
@@ -157,7 +157,7 @@ for (i in c("ES")){
 ##KEYWORDS
 for (i in c("ES")){
   # Create a new data frame, where each keyword is in a separate row.
-  
+
   literatureByKeywords <- subset(literatureList[[i]],
                                  select = c("AuthorKeywords", "id"))
   literatureByKeywords <- literatureByKeywords[
@@ -165,7 +165,7 @@ for (i in c("ES")){
   literatureByKeywords <- literatureByKeywords[
     literatureByKeywords$AuthorKeywords != "", ]
   using_KeywordsPlus = FALSE
-  
+
   if (nrow(literatureByKeywords) == 0) {
     literatureByKeywords <- subset(literatureList[[i]],
                                    select = c("KeywordsPlus", "id"))
@@ -176,7 +176,7 @@ for (i in c("ES")){
       literatureByKeywords$AuthorKeywords != "", ]
     using_KeywordsPlus = TRUE
   }
-  
+
   if (nrow(literatureByKeywords) > 0) {
     literatureByKeywords <- cSplit(literatureByKeywords,
                                    splitCols = "AuthorKeywords",
@@ -189,14 +189,14 @@ for (i in c("ES")){
                                   subset(literatureList[[i]], select = -c(AuthorKeywords)),
                                   by = "id")
   }
-  
+
   # Save file
   write.table(literatureByKeywords, paste(getwd(), "/output/all/literature_by_keywords_", i, ".csv", sep=""),
-              row.names = F, sep = ';', qmethod = "double") 
-  
+              row.names = F, sep = ';', qmethod = "double")
+
   #remove temp data
   rm(list = c("literatureByKeywords", "using_KeywordsPlus"))
-}  
+}
 
 
 #SAVE LITERATURE FILE
@@ -210,22 +210,22 @@ rm(literatureList)
 
 # 2 Topic modelling ---------------------------------------------------------------------------------
 setwd(file.path(mainDir))
-for (i in c("ES")){  
+for (i in c("ES")){
     # Do topic modeling on abstracts using the lda libraries (adding them as a new column)
     source(paste(getwd(), "/topicmodel_all.R", sep = ""), chdir = T)
-    
+
     # Add top topic to main document
     literature_ES$TopicModelTopic <- tfdDF$toptopic
-    
+
     # Save the topic model topic descriptions
     write.table(topwords, "topicmodeltopics_ES.csv",
                 sep = ";", row.names = F, qmethod = "double")
-    
+
     outDir = paste(getwd(),"/output/all/topicmodelvis_", "ES" , sep = "")
-    
+
     # HTML output
     serVis(json, out.dir = outDir, open.browser = FALSE)
-    
+
     # Freeing up memory
     rm(list = c("json", "outDir", "topwords", "tfdDF"))
   }
@@ -248,18 +248,21 @@ yearPlot <- ggplot(literature_ES, aes(YearPublished)) +
 #hist(literatureList$ES$YearPublished)
 
 setwd(paste(getwd(), "/output/all/plots/", sep = ""))
-png(file="yearPlot_ES.png", width=2000, height= 700, res=300)
+postscript("Fig1.eps", height = 2.5, width = 5.2, paper="special", horizontal=T)
 yearPlot
 dev.off()
+#png(file="yearPlot_ES.png", width=2000, height= 700, res=300)
+#yearPlot
+#dev.off()
 setwd(mainDir)
 
 #KEYWORDS
 
 setwd(paste(getwd(), "/output/all/", sep = ""))
 keywordPlotList <- list()
-keywordDFList <- read.csv(paste("literature_by_keywords_", i, ".csv", sep = ""), sep = ';', stringsAsFactors=FALSE) 
+keywordDFList <- read.csv(paste("literature_by_keywords_", i, ".csv", sep = ""), sep = ';', stringsAsFactors=FALSE)
 setwd(mainDir)
-  
+
 x1 <- keywordDFList %>% group_by(AuthorKeywords) %>% summarize(freq = n()) %>% arrange(desc(freq))
 x1 <- as.data.frame(head(x1, n = 10))
 keywordPlot_ES<- ggplot(x1, aes (reorder(x1[,1], x1[,2]), freq)) +
@@ -278,7 +281,7 @@ setwd(mainDir)
 #LOCATIONS
 locList = list()
 setwd(paste(mainDir, "/output/all/", sep = ""))
-locList <- read.csv(paste("locations_", i, ".csv", sep = ""), sep = ';', stringsAsFactors=FALSE) 
+locList <- read.csv(paste("locations_", i, ".csv", sep = ""), sep = ';', stringsAsFactors=FALSE)
 for (j in c("USA", "CA", "CT" ,"DC", "DE" ,"GA", "IL", "MD", "MI","MN", "NC", "NE", "NY", "PA", "TN","VA", "WI", "WY")){
   locList[grep(j, locList$country), "country"] <- "United States"
   }

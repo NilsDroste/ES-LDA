@@ -71,30 +71,14 @@ fit <- lda.collapsed.gibbs.sampler(documents = documents, K = K, vocab = vocab,
                                    compute.log.likelihood = TRUE)
 models[[i]] <- fit
 
-# Document topic matrix (transposed to get topic probabilities for each document)
-topicsfordocs <- t(fit$document_sums)
-# Convert to data frame
-tfdDF <- data.frame(topicsfordocs)
-# Add top topics document
-colnames(tfdDF) <- as.character(1:K)
-tfdDF$toptopic <- colnames(tfdDF)[max.col(tfdDF,ties.method="first")]
-
-# Summary statistics
-# Most likely documents for each topic
-topdocsfortopic[[i]] <- top.topic.documents(fit$document_sums)
-# Twenty most likely words for each topic, ranked by probability mass
-topwords[[i]] <- top.topic.words(fit$topics, 20, by.score = FALSE)
-
 theta <- t(apply(fit$document_sums + alpha, 2, function(x) x/sum(x)))
 phi <- t(apply(t(fit$topics) + eta, 2, function(x) x/sum(x)))
 
 TopicModel[[i]]    <- list(phi = phi,
-                      theta = theta,
-                      doc.length = doc.length,
-                      vocab = vocab,
-                      term.frequency = term.frequency,
-                      tfdDF$toptopic )
-
+                           theta = theta,
+                           doc.length = doc.length,
+                           vocab = vocab,
+                           term.frequency = term.frequency)
 
 # create the JSON object to feed the visualization
 json <- createJSON(phi = TopicModel[[i]]$phi,
@@ -104,12 +88,32 @@ json <- createJSON(phi = TopicModel[[i]]$phi,
                    term.frequency = TopicModel[[i]]$term.frequency, 
                    reorder.topics = TRUE)
 
+# reorder topics according to new order from the json creation
 new.order <- RJSONIO::fromJSON(json)$topic.order
+TopicModel[[i]]$topic.order <- new.order
 TopicModel[[i]]$phi <- TopicModel[[i]]$phi[new.order, ]
 TopicModel[[i]]$theta <- TopicModel[[i]]$theta[, new.order]
 TopicModel[[i]]$jsPCA <- jsPCA(TopicModel[[i]]$phi)
 
+# Document topic matrix (transposed to get topic probabilities for each document)
+topicsfordocs <- t(fit$document_sums)
+# Convert to data frame
+tfdDF <- data.frame(topicsfordocs)
+# reorder topics
+tfdDF <- tfdDF[,new.order]
+# rename columns
+colnames(tfdDF) <- as.character(1:K)
+# Add top topic to main document
+literatureList[[i]]$TopModelTopic <- colnames(tfdDF)[max.col(tfdDF,ties.method="first")]
+
+# Summary statistics
+# Most likely documents for each topic
+topdocsfortopic[[i]] <- top.topic.documents(fit$document_sums)
+# reorder
 topdocsfortopic[[i]] <- topdocsfortopic[[i]][,new.order] 
+# Twenty most likely words for each topic, ranked by probability mass
+topwords[[i]] <- top.topic.words(fit$topics, 20, by.score = FALSE)
+# reorder
 topwords[[i]] <- topwords[[i]][,new.order]
 
 # Freeing up memory
